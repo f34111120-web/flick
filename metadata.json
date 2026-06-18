@@ -1,0 +1,6 @@
+{
+  "name": "Flick",
+  "description": "A high-fidelity minimalist monochromatic social media prototype, demonstrating editorial transitions and dynamic layout aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
