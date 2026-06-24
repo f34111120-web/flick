@@ -181,3 +181,71 @@ export async function setChatUnread(chatId: string, unread: boolean): Promise<vo
   const { error } = await supabase.from('chat_sessions').update({ unread }).eq('id', chatId);
   if (error) console.warn('[flick] setChatUnread 失敗：', error.message);
 }
+
+// === 評分用：註冊 / 登入 / 統計 ============================================
+export type UserStat = {
+  name: string;
+  email: string;
+  createdAt: string;
+  loginCount: number;
+  lastLogin: string | null;
+};
+
+// 註冊：同 email upsert（不重複計入人數），並記一次登入
+export async function registerUser(u: {
+  name: string;
+  username: string;
+  email: string;
+  discipline: string;
+}): Promise<void> {
+  if (!supabase) return;
+  const up = await supabase
+    .from('users')
+    .upsert(
+      { name: u.name, username: u.username, email: u.email, discipline: u.discipline },
+      { onConflict: 'email' }
+    );
+  if (up.error) console.warn('[flick] registerUser 失敗：', up.error.message);
+  await recordLogin(u.email);
+}
+
+// 登入：插一筆 login_event（給「已有帳號」回訪用）
+export async function recordLogin(email: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('login_events').insert({ user_email: email });
+  if (error) console.warn('[flick] recordLogin 失敗：', error.message);
+}
+
+// 統計：註冊總數 + 每人登入次數/最後登入時間（前端聚合，demo 量級足夠）
+export async function fetchStats(): Promise<{ totalUsers: number; users: UserStat[] }> {
+  if (!supabase) return { totalUsers: 0, users: [] };
+  const usersRes = await supabase
+    .from('users')
+    .select('name, email, created_at')
+    .order('created_at', { ascending: true });
+  const logsRes = await supabase
+    .from('login_events')
+    .select('user_email, created_at');
+
+  if (usersRes.error || logsRes.error) {
+    console.warn('[flick] fetchStats 失敗：', usersRes.error?.message, logsRes.error?.message);
+    return { totalUsers: 0, users: [] };
+  }
+
+  const logs = logsRes.data ?? [];
+  const stats: UserStat[] = (usersRes.data ?? []).map((u: any) => {
+    const mine = logs.filter((l: any) => l.user_email === u.email);
+    const last = mine.reduce<string | null>(
+      (acc, l: any) => (acc && acc > l.created_at ? acc : l.created_at),
+      null
+    );
+    return {
+      name: u.name,
+      email: u.email,
+      createdAt: u.created_at,
+      loginCount: mine.length,
+      lastLogin: last,
+    };
+  });
+  return { totalUsers: stats.length, users: stats };
+}

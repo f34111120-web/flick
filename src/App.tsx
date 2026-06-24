@@ -9,6 +9,8 @@ import {
   addComment,
   insertMessage,
   setChatUnread,
+  registerUser,
+  recordLogin,
 } from './lib/supabase';
 
 // Import Screens
@@ -67,7 +69,15 @@ export default function App() {
       ...currentUser,
       ...userData
     });
+    registerUser(userData); // 寫入 users（upsert）+ 記一次登入 → 評分用
     // SIGNUP pushes to HOME screen
+    handleNavigate('HOME', 'push');
+  };
+
+  // 已有帳號登入：用填入的 email 記一筆 login_event（累積登入次數/時間）
+  const handleLogin = (email: string) => {
+    setCurrentUser({ ...currentUser, email });
+    recordLogin(email);
     handleNavigate('HOME', 'push');
   };
 
@@ -248,7 +258,13 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'SIGNUP':
-        return <SignupScreen onSignUp={handleSignUp} />;
+        return (
+          <SignupScreen
+            onSignUp={handleSignUp}
+            onLogin={handleLogin}
+          />
+        );
+
       
       case 'HOME':
         return (
@@ -300,7 +316,12 @@ export default function App() {
         );
 
       default:
-        return <SignupScreen onSignUp={handleSignUp} />;
+        return (
+          <SignupScreen
+            onSignUp={handleSignUp}
+            onLogin={handleLogin}
+          />
+        );
     }
   };
 

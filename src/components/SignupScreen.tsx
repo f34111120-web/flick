@@ -4,9 +4,10 @@ import { Sparkles, Eye, EyeOff, ShieldCheck, User } from 'lucide-react';
 
 interface SignupScreenProps {
   onSignUp: (userData: { name: string; username: string; email: string; discipline: string }) => void;
+  onLogin: (email: string) => void;
 }
 
-export default function SignupScreen({ onSignUp }: SignupScreenProps) {
+export default function SignupScreen({ onSignUp, onLogin }: SignupScreenProps) {
   const [email, setEmail] = useState('jane@studio.design');
   const [password, setPassword] = useState('monochrome2026');
   const [discipline, setDiscipline] = useState('Creator');
@@ -55,12 +56,12 @@ export default function SignupScreen({ onSignUp }: SignupScreenProps) {
 
   const handleSignInClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    onSignUp({
-      name: 'Default Curator',
-      username: '@curator_essence',
-      email: 'curator@essence.design',
-      discipline: 'Architect'
-    });
+    if (!email) {
+      setError('請先填入 email 再登入。');
+      return;
+    }
+    setError('');
+    onLogin(email); // 用填入的 email 記一筆登入（累積登入次數/時間）
   };
 
   return (
@@ -207,7 +208,7 @@ export default function SignupScreen({ onSignUp }: SignupScreenProps) {
               onClick={handleSignInClick}
               className="font-mono text-[11px] text-[#8e9192] hover:text-[#e5e2e1] active:text-[#c7c6c6] transition-colors uppercase tracking-wider decoration-1 underline-offset-4 hover:underline"
             >
-              已有帳號？直接進入體驗
+              已有帳號？登入體驗
             </a>
           </div>
         </div>
